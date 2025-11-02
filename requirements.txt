@@ -1,0 +1,16 @@
+# Financial Data Pipeline - Core Dependencies
+
+# Data collection
+requests==2.31.0
+yfinance==0.2.28
+pandas==2.0.3
+numpy==1.24.4
+
+# Database
+psycopg2-binary==2.9.7
+
+# Optional: Jupyter notebooks
+# ipykernel==6.25.0
+# matplotlib==3.7.2
+# seaborn==0.12.2
+# plotly==5.15.0

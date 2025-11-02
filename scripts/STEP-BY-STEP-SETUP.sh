@@ -1,0 +1,72 @@
+#!/bin/bash
+# ============================================================
+# HƯỚNG DẪN TỪNG BƯỚC SETUP DỰ ÁN TỰ ĐỘNG CHẠY LÚC 7H SÁNG
+# ============================================================
+
+echo "📋 HƯỚNG DẪN SETUP TỪNG BƯỚC"
+echo "=========================================="
+echo ""
+echo "BƯỚC 1: Trên Mac terminal, upload scripts lên EC2"
+echo "--------------------------------------------"
+echo "cd /Users/kiendo/Downloads/Cole-mini-projects-develop/spark-mini-projects/spark-realdata-pipeline"
+echo ""
+echo "scp -i ~/Downloads/financial-pipeline-key.pem \\"
+echo "    scripts/setup-auto-run-complete.sh \\"
+echo "    ec2-user@3.25.91.76:~/spark-realdata-pipeline/scripts/"
+echo ""
+read -p "✅ Đã upload xong? Nhấn Enter để tiếp tục..."
+echo ""
+
+echo "BƯỚC 2: SSH vào EC2"
+echo "--------------------------------------------"
+echo "ssh -i ~/Downloads/financial-pipeline-key.pem ec2-user@3.25.91.76"
+echo ""
+read -p "✅ Đã SSH vào EC2? Nhấn Enter để tiếp tục..."
+echo ""
+
+echo "BƯỚC 3: Trên EC2 terminal, chạy các lệnh sau:"
+echo "--------------------------------------------"
+echo "cd ~/spark-realdata-pipeline"
+echo "chmod +x scripts/setup-auto-run-complete.sh"
+echo "bash scripts/setup-auto-run-complete.sh"
+echo ""
+echo "Script sẽ tự động:"
+echo "  ✓ Tạo .env file với API keys"
+echo "  ✓ Khởi động Docker containers"
+echo "  ✓ Init Airflow database"
+echo "  ✓ Setup auto-start service"
+echo "  ✓ Unpause DAG để tự chạy"
+echo ""
+read -p "✅ Đã chạy script xong? Nhấn Enter để tiếp tục..."
+echo ""
+
+echo "BƯỚC 4: Kiểm tra kết quả"
+echo "--------------------------------------------"
+echo "bash scripts/check-auto-run-ec2.sh"
+echo ""
+echo "Kiểm tra xem:"
+echo "  ✓ Containers đang chạy"
+echo "  ✓ Auto-start service ENABLED"
+echo "  ✓ DAG schedule đúng (0:00 UTC = 7:00 AM VN)"
+echo "  ✓ DAG không bị PAUSED"
+echo ""
+read -p "✅ Đã kiểm tra xong? Nhấn Enter để xem tóm tắt..."
+echo ""
+
+echo "✅ HOÀN TẤT!"
+echo "=========================================="
+echo ""
+echo "Dự án sẽ tự động chạy:"
+echo "  ⏰ Lúc: 7:00 AM (Việt Nam)"
+echo "  📅 Ngày: Thứ 2 - Thứ 6 (Mon-Fri)"
+echo "  🔄 Không cần mở máy tính"
+echo ""
+echo "🌐 Truy cập Airflow UI để monitor:"
+echo "   http://3.25.91.76:8081"
+echo "   Username: admin"
+echo "   Password: admin"
+echo ""
+
+
+
+

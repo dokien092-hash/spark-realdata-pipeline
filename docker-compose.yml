@@ -1,0 +1,126 @@
+services:
+  # ============================================
+  # PostgreSQL - Main Database
+  # ============================================
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: realdata_warehouse
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - data-network
+
+  # ============================================
+  # Jupyter - DISABLED (tiết kiệm dung lượng trên EC2)
+  # Uncomment nếu cần analysis notebooks
+  # ============================================
+  # jupyter:
+  #   image: jupyter/pyspark-notebook:spark-3.5.0
+  #   container_name: jupyter
+  #   ports:
+  #     - "8888:8888"
+  #   environment:
+  #     - JUPYTER_ENABLE_LAB=yes
+  #   command: >
+  #     start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+  #   volumes:
+  #     - ./notebooks:/home/jovyan/work
+  #     - ./data:/home/jovyan/data
+  #     - ./jobs:/home/jovyan/jobs
+  #   networks:
+  #     - data-network
+
+  # ============================================
+  # Airflow - Workflow Orchestration
+  # ============================================
+  airflow-webserver:
+    image: apache/airflow:2.7.1
+    container_name: airflow-webserver
+    command: webserver
+    entrypoint: |
+      bash -lc "python -m pip install --no-cache-dir yfinance==0.2.28 multitasking==0.0.10 pandas==2.0.3 numpy==1.24.4 requests psycopg2-binary && airflow db init && airflow users create --role Admin --username admin --password admin --email admin@example.com --firstname admin --lastname admin && airflow webserver"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres@postgres/realdata_warehouse
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=false
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
+      - POLYGON_API_KEY=${POLYGON_API_KEY:-MKtaIeJgaIVQCxwr_HskC4NhLndLPZXR}
+      - ALPHA_VANTAGE_KEY=${ALPHA_VANTAGE_KEY:-VWR51RQTVFTSBEL7}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY:-d412e99r01qr2l0c96sgd412e99r01qr2l0c96t0}
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./jobs:/opt/airflow/jobs
+    depends_on:
+      - postgres
+    networks:
+      - data-network
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.1
+    container_name: airflow-scheduler
+    command: scheduler
+    entrypoint: |
+      bash -lc "python -m pip install --no-cache-dir yfinance==0.2.28 multitasking==0.0.10 pandas==2.0.3 numpy==1.24.4 requests psycopg2-binary && airflow db init && airflow scheduler"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres@postgres/realdata_warehouse
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=false
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - POLYGON_API_KEY=${POLYGON_API_KEY:-MKtaIeJgaIVQCxwr_HskC4NhLndLPZXR}
+      - ALPHA_VANTAGE_KEY=${ALPHA_VANTAGE_KEY:-VWR51RQTVFTSBEL7}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY:-d412e99r01qr2l0c96sgd412e99r01qr2l0c96t0}
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./jobs:/opt/airflow/jobs
+    depends_on:
+      - postgres
+    networks:
+      - data-network
+
+  # ============================================
+  # Grafana - DISABLED (tiết kiệm tài nguyên trên EC2)
+  # Uncomment nếu cần monitoring dashboards
+  # ============================================
+  # grafana:
+  #   image: grafana/grafana:10.1.0
+  #   container_name: grafana
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   volumes:
+  #     - grafana-data:/var/lib/grafana
+  #     - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+  #     - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - data-network
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  postgres-data:
+  # grafana-data:  # DISABLED cùng với Grafana service
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  data-network:
+    driver: bridge

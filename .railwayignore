@@ -1,0 +1,17 @@
+# Files to ignore when deploying to Railway
+airflow/logs/**
+*.log
+__pycache__/**
+.pytest_cache/**
+data/**
+*.ipynb_checkpoints
+.DS_Store
+.env
+*.pem
+*.md
+!README.md
+notebooks/**
+.git/**
+.gitignore
+
+

@@ -1,0 +1,35 @@
+# Dockerfile cho Airflow Scheduler trên Render
+FROM apache/airflow:2.7.1
+
+USER root
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y gcc postgresql-client && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+USER airflow
+
+# Install Python packages
+RUN pip install --no-cache-dir \
+    yfinance==0.2.28 \
+    multitasking==0.0.10 \
+    pandas==2.0.3 \
+    numpy==1.24.4 \
+    requests==2.31.0 \
+    psycopg2-binary==2.9.7
+
+WORKDIR /opt/airflow
+
+# Copy DAGs và jobs
+COPY airflow/dags ./dags
+COPY jobs ./jobs
+
+# Copy entrypoint script
+COPY scripts/entrypoint-scheduler.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Default command
+ENTRYPOINT ["/entrypoint.sh"]
+

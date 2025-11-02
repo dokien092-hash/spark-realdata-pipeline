@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Airflow logs
+airflow/logs/
+*.log
+
+# Docker volumes (data)
+postgres-data/
+kafka-data/
+redis-data/
+grafana-data/
+spark-events/
+
+# Cache
+*.cache
+*.pkl
+/tmp/
+
+# Kluster
+.cursor/rules/kluster-code-verify.mdc
+.kluster

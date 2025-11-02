@@ -1,0 +1,79 @@
+# ============================================================
+# CÁC LỆNH HOÀN TẤT SETUP TRÊN EC2
+# Copy từng nhóm lệnh và paste vào EC2 terminal
+# ============================================================
+
+# NHÓM 1: Vào project và dừng Grafana
+cd ~/spark-realdata-pipeline
+docker-compose stop grafana 2>/dev/null || true
+docker-compose rm -f grafana 2>/dev/null || true
+
+# NHÓM 2: Khởi động lại containers (không có Grafana)
+docker-compose down
+docker-compose up -d
+
+# NHÓM 3: Đợi containers start và kiểm tra
+sleep 30
+docker-compose ps
+
+# NHÓM 4: Tạo .env file (nếu chưa có)
+if [ ! -f .env ]; then
+    cat > .env << 'EOF'
+POLYGON_API_KEY=MKtaIeJgaIVQCxwr_HskC4NhLndLPZXR
+ALPHA_VANTAGE_KEY=VWR51RQTVFTSBEL7
+FINNHUB_API_KEY=d412e99r01qr2l0c96sgd412e99r01qr2l0c96t0
+EOF
+    echo "✅ Đã tạo .env file"
+else
+    echo "✅ .env đã tồn tại"
+fi
+
+# NHÓM 5: Init Airflow database
+docker exec airflow-scheduler airflow db init 2>/dev/null || echo "Database đã init"
+
+# NHÓM 6: Setup auto-start service (tự khởi động khi EC2 reboot)
+sudo tee /etc/systemd/system/docker-compose.service > /dev/null << 'EOF'
+[Unit]
+Description=Docker Compose Application Service
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/ec2-user/spark-realdata-pipeline
+ExecStart=/usr/local/bin/docker-compose up -d
+ExecStop=/usr/local/bin/docker-compose down
+User=ec2-user
+Group=docker
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable docker-compose.service
+
+# NHÓM 7: Kiểm tra auto-start đã enable
+sudo systemctl is-enabled docker-compose.service
+# Phải hiển thị: "enabled"
+
+# NHÓM 8: Đợi Airflow load DAGs
+sleep 60
+
+# NHÓM 9: Kiểm tra và unpause DAG
+docker-compose exec airflow-webserver airflow dags list | grep financial
+docker-compose exec airflow-webserver airflow dags unpause financial_pipeline_dag
+
+# NHÓM 10: Kiểm tra kết quả cuối cùng
+echo ""
+echo "✅ HOÀN TẤT SETUP!"
+echo ""
+docker-compose ps
+echo ""
+echo "🌐 Airflow UI: http://3.25.91.76:8081"
+echo "   Username: admin | Password: admin"
+echo ""
+echo "⏰ DAG sẽ tự động chạy lúc 7:00 sáng VN (0:00 UTC) từ T2-T6"
+echo ""
+
