@@ -13,14 +13,12 @@ airflow users create \
   --firstname admin \
   --lastname admin || true
 
-echo "🚀 Starting Airflow webserver in background..."
-airflow webserver &
-WEBSERVER_PID=$!
+echo "🚀 Starting Airflow webserver and scheduler..."
 
-echo "📅 Starting Airflow scheduler..."
+# Start scheduler in background
 airflow scheduler &
 SCHEDULER_PID=$!
 
-# Wait for processes
-wait $WEBSERVER_PID $SCHEDULER_PID
+# Start webserver in foreground (Render needs a main process)
+exec airflow webserver
 
