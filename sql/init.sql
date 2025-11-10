@@ -11,6 +11,24 @@ CREATE SCHEMA IF NOT EXISTS stocks;
 -- PRIMARY TABLES (Data Sources)
 -- ============================================
 
+-- Finnhub Data Table (PRIMARY source - 515 stocks, no volume)
+CREATE TABLE IF NOT EXISTS stocks.stocks_daily_finnhub (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    symbol VARCHAR(20) NOT NULL,
+    date DATE NOT NULL,
+    sector VARCHAR(100), -- Industry sector từ Finnhub Company Profile
+    open_price NUMERIC(12,4),
+    high_price NUMERIC(12,4),
+    low_price NUMERIC(12,4),
+    close_price NUMERIC(12,4),
+    -- Volume không có vì Finnhub Quote API (free tier) không cung cấp volume
+    daily_return NUMERIC(8,4),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(date, symbol)
+);
+CREATE INDEX IF NOT EXISTS idx_finnhub_sector ON stocks.stocks_daily_finnhub(sector);
+CREATE INDEX IF NOT EXISTS idx_finnhub_symbol_date ON stocks.stocks_daily_finnhub(symbol, date);
+
 -- Stocks Daily Data Table (Polygon.io source)
 CREATE TABLE IF NOT EXISTS stocks.stocks_daily_polygon (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -69,12 +87,22 @@ CREATE TABLE IF NOT EXISTS stocks.stocks_daily_yahoo (
 -- ============================================
 -- UNIFIED VIEW (Smart Deduplication)
 -- ============================================
--- Priority: Alpha Vantage > Polygon > Yahoo
+-- Priority: Finnhub (0) > Alpha Vantage (1) > Polygon (2) > Yahoo (3)
 CREATE OR REPLACE VIEW stocks.stocks_daily_all AS
 WITH ranked_data AS (
     SELECT 
-        id, symbol, date, sector, open_price, high_price, low_price,
-        close_price, volume, market_cap, avg_pe_ratio, daily_return,
+        symbol, date, sector, open_price, high_price, low_price,
+        close_price, NULL::BIGINT as volume, daily_return,
+        created_at,
+        'finnhub' as source,
+        0 as priority
+    FROM stocks.stocks_daily_finnhub
+    
+    UNION ALL
+    
+    SELECT 
+        symbol, date, sector, open_price, high_price, low_price,
+        close_price, volume, daily_return,
         created_at,
         'alphavantage' as source,
         1 as priority
@@ -83,21 +111,18 @@ WITH ranked_data AS (
     UNION ALL
     
     SELECT 
-        id, symbol, date, sector, open_price, high_price, low_price,
-        close_price, volume, market_cap, avg_pe_ratio, daily_return,
+        symbol, date, sector, open_price, high_price, low_price,
+        close_price, volume, daily_return,
         created_at,
-        CASE 
-            WHEN created_at >= '2025-10-15' THEN 'polygon'
-            ELSE 'yahoo'
-        END as source,
+        'polygon' as source,
         2 as priority
     FROM stocks.stocks_daily_polygon
     
     UNION ALL
     
     SELECT 
-        id, symbol, date, sector, open_price, high_price, low_price,
-        close_price, volume, market_cap, avg_pe_ratio, daily_return,
+        symbol, date, sector, open_price, high_price, low_price,
+        close_price, volume, daily_return,
         created_at,
         'yahoo' as source,
         3 as priority
@@ -110,8 +135,8 @@ deduplicated AS (
     FROM ranked_data
 )
 SELECT 
-    id, symbol, date, sector, open_price, high_price, low_price,
-    close_price, volume, market_cap, avg_pe_ratio, daily_return,
+    symbol, date, sector, open_price, high_price, low_price,
+    close_price, volume, daily_return,
     created_at, source
 FROM deduplicated
 WHERE rn = 1;

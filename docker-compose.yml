@@ -18,24 +18,23 @@ services:
       - data-network
 
   # ============================================
-  # Jupyter - DISABLED (tiết kiệm dung lượng trên EC2)
-  # Uncomment nếu cần analysis notebooks
+  # Jupyter - Analysis Notebooks
   # ============================================
-  # jupyter:
-  #   image: jupyter/pyspark-notebook:spark-3.5.0
-  #   container_name: jupyter
-  #   ports:
-  #     - "8888:8888"
-  #   environment:
-  #     - JUPYTER_ENABLE_LAB=yes
-  #   command: >
-  #     start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
-  #   volumes:
-  #     - ./notebooks:/home/jovyan/work
-  #     - ./data:/home/jovyan/data
-  #     - ./jobs:/home/jovyan/jobs
-  #   networks:
-  #     - data-network
+  jupyter:
+    image: jupyter/pyspark-notebook:spark-3.5.0
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    command: >
+      bash -c "pip install --no-cache-dir plotly==5.15.0 psycopg2-binary==2.9.7 && start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./data:/home/jovyan/data
+      - ./jobs:/home/jovyan/jobs
+    networks:
+      - data-network
 
   # ============================================
   # Airflow - Workflow Orchestration

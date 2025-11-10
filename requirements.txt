@@ -13,4 +13,4 @@ psycopg2-binary==2.9.7
 # ipykernel==6.25.0
 # matplotlib==3.7.2
 # seaborn==0.12.2
-# plotly==5.15.0
+plotly==5.15.0  # Required for stock_dashboard.ipynb
